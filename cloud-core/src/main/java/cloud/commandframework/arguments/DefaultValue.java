@@ -23,6 +23,7 @@
 //
 package cloud.commandframework.arguments;
 
+import cloud.commandframework.arguments.parser.ArgumentParseResult;
 import cloud.commandframework.context.CommandContext;
 import java.util.Objects;
 import org.apiguardian.api.API;
@@ -82,19 +83,19 @@ public interface DefaultValue<C, T> {
      * @param context the context
      * @return the default value
      */
-    @NonNull T evaluateDefault(@NonNull CommandContext<C> context);
+    @NonNull ArgumentParseResult<T> evaluateDefault(@NonNull CommandContext<C> context);
 
 
     final class ConstantDefaultValue<C, T> implements DefaultValue<C, T> {
 
-        private final T value;
+        private final ArgumentParseResult<T> value;
 
         private ConstantDefaultValue(final @NonNull T value) {
-            this.value = value;
+            this.value = ArgumentParseResult.success(value);
         }
 
         @Override
-        public @NonNull T evaluateDefault(final @NonNull CommandContext<C> context) {
+        public @NonNull ArgumentParseResult<T> evaluateDefault(final @NonNull CommandContext<C> context) {
             return this.value;
         }
 
@@ -107,7 +108,7 @@ public interface DefaultValue<C, T> {
                 return false;
             }
             final ConstantDefaultValue<?, ?> that = (ConstantDefaultValue<?, ?>) object;
-            return Objects.equals(this.value, that.value);
+            return Objects.equals(this.value.parsedValue().get(), that.value.parsedValue().get());
         }
 
         @Override
@@ -125,7 +126,7 @@ public interface DefaultValue<C, T> {
         }
 
         @Override
-        public @NonNull T evaluateDefault(final @NonNull CommandContext<C> context) {
+        public @NonNull ArgumentParseResult<T> evaluateDefault(final @NonNull CommandContext<C> context) {
             return this.defaultValue.evaluateDefault(context);
         }
 
@@ -156,7 +157,7 @@ public interface DefaultValue<C, T> {
         }
 
         @Override
-        public @NonNull T evaluateDefault(final @NonNull CommandContext<C> context) {
+        public @NonNull ArgumentParseResult<T> evaluateDefault(final @NonNull CommandContext<C> context) {
             throw new UnsupportedOperationException();
         }
 

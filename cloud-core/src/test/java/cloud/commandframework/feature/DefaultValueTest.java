@@ -26,8 +26,12 @@ package cloud.commandframework.feature;
 import cloud.commandframework.CommandManager;
 import cloud.commandframework.TestCommandSender;
 import cloud.commandframework.arguments.DefaultValue;
+import cloud.commandframework.arguments.parser.ArgumentParseResult;
+import cloud.commandframework.exceptions.ArgumentParseException;
 import cloud.commandframework.execution.CommandResult;
 import cloud.commandframework.keys.CloudKey;
+import com.google.common.truth.ThrowableSubject;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +39,7 @@ import org.junit.jupiter.api.Test;
 import static cloud.commandframework.arguments.standard.IntegerParser.integerParser;
 import static cloud.commandframework.util.TestUtils.createManager;
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class DefaultValueTest {
 
@@ -64,7 +69,8 @@ class DefaultValueTest {
     void Dynamic_HappyFlow_Success() throws Exception {
         // Arrange
         final CloudKey<Integer> key = CloudKey.of("int", Integer.class);
-        final DefaultValue<TestCommandSender, Integer> defaultValue = ctx -> ThreadLocalRandom.current().nextInt();
+        final DefaultValue<TestCommandSender, Integer> defaultValue =
+                ctx -> ArgumentParseResult.success(ThreadLocalRandom.current().nextInt());
         this.commandManager.command(
                 this.commandManager.commandBuilder("test").optional(key, integerParser(), defaultValue)
         );
@@ -74,6 +80,25 @@ class DefaultValueTest {
 
         // Assert
         assertThat(result.commandContext().get(key)).isNotNull();
+    }
+
+    @Test
+    void Dynamic_HappyFlow_Failure() {
+        // Arrange
+        final CloudKey<Integer> key = CloudKey.of("int", Integer.class);
+        final DefaultValue<TestCommandSender, Integer> defaultValue =
+                ctx -> ArgumentParseResult.failure(new RuntimeException("Oops this argument isn't really optional :D"));
+        this.commandManager.command(
+                this.commandManager.commandBuilder("test").optional(key, integerParser(), defaultValue)
+        );
+
+        // Act & Assert
+        final CompletionException completionException = assertThrows(CompletionException.class, () -> {
+            this.commandManager.commandExecutor().executeCommand(new TestCommandSender(), "test").join();
+        });
+        final ThrowableSubject argParse = assertThat(completionException).hasCauseThat();
+        argParse.isInstanceOf(ArgumentParseException.class);
+        argParse.hasCauseThat().isInstanceOf(RuntimeException.class);
     }
 
     @Test
