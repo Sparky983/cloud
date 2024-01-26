@@ -19,7 +19,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
-      - uses: gradle/gradle-build-action@v2
+      - uses: gradle/gradle-build-action@v3
         with:
           # allow master and *-dev branches to write caches (default is only master/main)
           cache-read-only: ${{ github.ref != 'refs/heads/master' && !(endsWith(github.ref, '-dev') && startsWith(github.ref, 'refs/heads/')) }}
